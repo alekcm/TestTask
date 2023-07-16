@@ -2,50 +2,48 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using UnityEngine.SceneManagement;
 
-public class GameManager : MonoBehaviour
+public class GameManager : MonoBehaviourPunCallbacks
 {
     public List<Color> playerColors;
     public List<Team> teamColors;
     public GameObject playerPrefab;
     public static bool AllowToMove = false;
+    public TMPro.TextMeshProUGUI winnerNameText;
+    public GameObject winnerPopup;
     public enum Teams
     {
         Team1, Team2
     }
-    public int currentTeam = 0;
     public void Start()
     {
         StartGame();
-    }
-
-    public void Update()
-    {
-        if (currentTeam == 0)
-        {
-            if (PhotonNetwork.CurrentRoom.PlayerCount > 1)
-                StartGame();
-        }
+        SpawnPlayer();
     }
     void StartGame()
     {
-        currentTeam = PhotonNetwork.CurrentRoom.PlayerCount - 1;
-        if (currentTeam == 1)
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
             CoinSpawner.SpawnCoins();
-        if (currentTeam > 0)
+        if (PhotonNetwork.CurrentRoom.PlayerCount > 1)
             AllowToMove = true;
-        SpawnPlayer();
     }
-
-    public static void Win(Teams team)
+    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
     {
-
+        if (PhotonNetwork.CurrentRoom.PlayerCount > 1)
+            StartGame();
+    }
+    public void Win(Player player)
+    {
+        winnerPopup.SetActive(true);
+        winnerNameText.text = $"Победил игрок {(int)player.team}. \nСобрано монет: {player.coinsCollected}";
+        AllowToMove = false;
     }
     public void SpawnPlayer()
     {
+        int currentTeam = PhotonNetwork.CurrentRoom.PlayerCount-1;
         Player player = PhotonNetwork.Instantiate(playerPrefab.name, teamColors[currentTeam].spawnPlace.position, Quaternion.identity).GetComponent<Player>();
-        player.PlayerSpriteColor = teamColors[currentTeam].teamColor;
         player.team = teamColors[currentTeam].team;
-        currentTeam++;
+        player.PlayerSpriteColor = teamColors[currentTeam].teamColor;
     }
 }
